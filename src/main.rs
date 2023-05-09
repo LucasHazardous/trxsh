@@ -5,6 +5,7 @@ use ogl33::*;
 use std::mem::size_of;
 use trxsh::shader_program::ShaderProgram;
 use trxsh::vao::VertexArray;
+use trxsh::vbo::Buffer;
 
 const VERT_SHADER: &str = r#"#version 330 core
   layout (location = 0) in vec3 pos;
@@ -52,8 +53,8 @@ fn main() {
     let vao = VertexArray::new().expect("Couldn't make a VAO");
     vao.bind();
 
-    let vbo = Buffer::new().expect("Couldn't make a VBO");
-    vbo.bind(BufferType::Array);
+    let vbo = Buffer::new(GL_ARRAY_BUFFER).expect("Couldn't make a VBO");
+    vbo.bind();
 
     let shader_program = ShaderProgram::from_vert_frag(VERT_SHADER, FRAG_SHADER).unwrap();
     shader_program.use_program();
@@ -70,7 +71,7 @@ fn main() {
         glEnableVertexAttribArray(0);
     }
 
-    buffer_data(bytemuck::cast_slice(&vertices));
+    vbo.buffer_data(bytemuck::cast_slice(&vertices));
     draw();
     win.swap_window();
 
@@ -95,7 +96,7 @@ fn main() {
             }
         }
         if update == true {
-            overwrite(bytemuck::cast_slice(&vertices));
+            vbo.overwrite(bytemuck::cast_slice(&vertices));
             draw();
             win.swap_window();
             update = false;
@@ -107,56 +108,5 @@ fn draw() {
     unsafe {
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, 3);
-    }
-}
-
-pub enum BufferType {
-    Array = GL_ARRAY_BUFFER as isize,
-    ElementArray = GL_ELEMENT_ARRAY_BUFFER as isize,
-}
-
-pub struct Buffer(pub GLuint);
-
-impl Buffer {
-    pub fn new() -> Option<Self> {
-        let mut vbo = 0;
-        unsafe {
-            glGenBuffers(1, &mut vbo);
-        }
-        if vbo != 0 {
-            Some(Self(vbo))
-        } else {
-            None
-        }
-    }
-
-    pub fn bind(&self, ty: BufferType) {
-        unsafe { glBindBuffer(ty as GLenum, self.0) }
-    }
-
-    pub fn clear_binding(ty: BufferType) {
-        unsafe { glBindBuffer(ty as GLenum, 0) }
-    }
-}
-
-pub fn buffer_data(data: &[u8]) {
-    unsafe {
-        glBufferData(
-            GL_ARRAY_BUFFER,
-            data.len().try_into().unwrap(),
-            data.as_ptr().cast(),
-            GL_DYNAMIC_DRAW,
-        );
-    }
-}
-
-pub fn overwrite(data: &[u8]) {
-    unsafe {
-        glBufferSubData(
-            GL_ARRAY_BUFFER,
-            0,
-            data.len().try_into().unwrap(),
-            data.as_ptr().cast(),
-        );
     }
 }
