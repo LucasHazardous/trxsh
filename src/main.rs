@@ -3,7 +3,8 @@
 use beryllium::*;
 use ogl33::*;
 use std::mem::size_of;
-use trxsh::shader_program::*;
+use trxsh::shader_program::ShaderProgram;
+use trxsh::vao::VertexArray;
 
 const VERT_SHADER: &str = r#"#version 330 core
   layout (location = 0) in vec3 pos;
@@ -106,27 +107,6 @@ fn draw() {
     unsafe {
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, 3);
-    }
-}
-
-pub struct VertexArray(pub GLuint);
-impl VertexArray {
-    pub fn new() -> Option<Self> {
-        let mut vao = 0;
-        unsafe { glGenVertexArrays(1, &mut vao) };
-        if vao != 0 {
-            Some(Self(vao))
-        } else {
-            None
-        }
-    }
-
-    pub fn bind(&self) {
-        unsafe { glBindVertexArray(self.0) }
-    }
-
-    pub fn clear_binding() {
-        unsafe { glBindVertexArray(0) }
     }
 }
 
