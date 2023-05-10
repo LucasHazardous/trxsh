@@ -26,6 +26,9 @@ const FRAG_SHADER: &str = r#"#version 330 core
   }
 "#;
 
+const WINDOW_HEIGHT: i32 = 800;
+const WINDOW_WIDTH: i32 = 800;
+
 type Vertex = [f32; 3];
 
 fn main() {
@@ -40,8 +43,8 @@ fn main() {
         .create_gl_window(
             "trxsh",
             WindowPosition::Centered,
-            800,
-            800,
+            WINDOW_WIDTH as u32,
+            WINDOW_HEIGHT as u32,
             WindowFlags::Shown,
         )
         .expect("Couldn't make a window and context");
@@ -80,7 +83,7 @@ fn main() {
     win.swap_window();
 
     let mut start = false;
-    let mut handle = thread::spawn(move || {});
+    let mut handle = thread::spawn(|| ());
     'main_loop: loop {
         while let Some(event) = sdl.poll_events().and_then(Result::ok) {
             match event {
@@ -91,14 +94,27 @@ fn main() {
                     }
                     _ => (),
                 },
+                Event::MouseButton(mouse_event) => {
+                    println!(
+                        "{}",
+                        ((mouse_event.x_pos - WINDOW_WIDTH / 2) * 2) as f64 / WINDOW_WIDTH as f64
+                    );
+
+                    println!(
+                        "{}",
+                        ((-mouse_event.y_pos + WINDOW_HEIGHT / 2) * 2) as f64
+                            / WINDOW_HEIGHT as f64
+                    );
+                }
                 _ => (),
             }
         }
+
         if start && handle.is_finished() {
-            handle = thread::spawn(move || {
+            handle = thread::spawn(|| {
                 thread::sleep(Duration::from_millis(1000));
             });
-            generate_object(&mut vertices);
+            generate_object(&mut vertices, 0.1, 0.1);
             vbo.overwrite(bytemuck::cast_slice(&vertices));
             draw();
             win.swap_window();
@@ -113,16 +129,16 @@ fn draw() {
     }
 }
 
-fn generate_object(vertices: &mut [Vertex; 3]) {
+fn generate_object(vertices: &mut [Vertex; 3], obj_width: f32, obj_height: f32) {
     let x = rand::thread_rng().gen_range(-0.9..0.8);
     let y = rand::thread_rng().gen_range(-0.9..0.8);
 
     vertices[0][0] = x;
     vertices[0][1] = y;
 
-    vertices[1][0] = x + 0.1;
+    vertices[1][0] = x + obj_width;
     vertices[1][1] = y;
 
-    vertices[2][0] = x + 0.05;
-    vertices[2][1] = y + 0.1;
+    vertices[2][0] = x + obj_width / 2.0;
+    vertices[2][1] = y + obj_height;
 }
