@@ -2,7 +2,11 @@
 
 use beryllium::*;
 use ogl33::*;
+use rand;
+use rand::Rng;
 use std::mem::size_of;
+use std::thread;
+use std::time::Duration;
 use trxsh::shader_program::ShaderProgram;
 use trxsh::vao::VertexArray;
 use trxsh::vbo::Buffer;
@@ -43,7 +47,7 @@ fn main() {
         .expect("Couldn't make a window and context");
     win.set_swap_interval(SwapInterval::Vsync);
 
-    let mut vertices: [Vertex; 3] = [[-1.0, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.0, 0.0]];
+    let mut vertices: [Vertex; 3] = [[-0.5, -0.1, 0.0], [0.1, -0.1, 0.0], [0.0, 0.0, 0.0]];
 
     unsafe {
         load_gl_with(|f_name| win.get_proc_address(f_name));
@@ -75,31 +79,29 @@ fn main() {
     draw();
     win.swap_window();
 
-    let mut update = false;
+    let mut start = false;
+    let mut handle = thread::spawn(move || {});
     'main_loop: loop {
         while let Some(event) = sdl.poll_events().and_then(Result::ok) {
             match event {
                 Event::Quit(_) => break 'main_loop,
-                Event::Keyboard(keyboard_event) => {
-                    update = true;
-                    match keyboard_event.key.keycode.0 {
-                        119 => {
-                            vertices[0][0] = 1.0;
-                        }
-                        100 => {
-                            vertices[0][0] = -0.5;
-                        }
-                        _ => update = false,
+                Event::Keyboard(keyboard_event) => match keyboard_event.key.keycode.0 {
+                    115 => {
+                        start = true;
                     }
-                }
+                    _ => (),
+                },
                 _ => (),
             }
         }
-        if update == true {
+        if start && handle.is_finished() {
+            handle = thread::spawn(move || {
+                thread::sleep(Duration::from_millis(1000));
+            });
+            generate_object(&mut vertices);
             vbo.overwrite(bytemuck::cast_slice(&vertices));
             draw();
             win.swap_window();
-            update = false;
         }
     }
 }
@@ -109,4 +111,18 @@ fn draw() {
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, 3);
     }
+}
+
+fn generate_object(vertices: &mut [Vertex; 3]) {
+    let x = rand::thread_rng().gen_range(-0.9..0.8);
+    let y = rand::thread_rng().gen_range(-0.9..0.8);
+
+    vertices[0][0] = x;
+    vertices[0][1] = y;
+
+    vertices[1][0] = x + 0.1;
+    vertices[1][1] = y;
+
+    vertices[2][0] = x + 0.05;
+    vertices[2][1] = y + 0.1;
 }
