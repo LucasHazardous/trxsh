@@ -51,6 +51,7 @@ fn main() {
     win.set_swap_interval(SwapInterval::Vsync);
 
     let mut vertices: [Vertex; 3] = [[-0.5, -0.1, 0.0], [0.1, -0.1, 0.0], [0.0, 0.0, 0.0]];
+    generate_object(&mut vertices, 0.1, 0.1);
 
     unsafe {
         load_gl_with(|f_name| win.get_proc_address(f_name));
@@ -95,16 +96,12 @@ fn main() {
                     _ => (),
                 },
                 Event::MouseButton(mouse_event) => {
-                    println!(
-                        "{}",
-                        ((mouse_event.x_pos - WINDOW_WIDTH / 2) * 2) as f64 / WINDOW_WIDTH as f64
-                    );
+                    let click_x =
+                        ((mouse_event.x_pos - WINDOW_WIDTH / 2) * 2) as f32 / WINDOW_WIDTH as f32;
+                    let click_y = ((-mouse_event.y_pos + WINDOW_HEIGHT / 2) * 2) as f32
+                        / WINDOW_HEIGHT as f32;
 
-                    println!(
-                        "{}",
-                        ((-mouse_event.y_pos + WINDOW_HEIGHT / 2) * 2) as f64
-                            / WINDOW_HEIGHT as f64
-                    );
+                    println!("{}", in_triangle(&vertices, 0.1, 0.1, click_x, click_y))
                 }
                 _ => (),
             }
@@ -141,4 +138,59 @@ fn generate_object(vertices: &mut [Vertex; 3], obj_width: f32, obj_height: f32) 
 
     vertices[2][0] = x + obj_width / 2.0;
     vertices[2][1] = y + obj_height;
+}
+
+fn in_triangle(
+    triangle_coords: &[Vertex; 3],
+    triangle_width: f32,
+    triangle_height: f32,
+    click_x: f32,
+    click_y: f32,
+) -> bool {
+    let midpoints = calculate_midpoints(triangle_coords);
+    let lengths = calculate_lengths(triangle_coords);
+
+    let mut area_sum = 0.0;
+    for i in 0..2 {
+        let distance_from_midpoint =
+            ((midpoints[i][0] - click_x).powf(2.0) + (midpoints[i][1] - click_y).powf(2.0)).sqrt();
+        area_sum += distance_from_midpoint * lengths[i] / 2.0;
+    }
+    let triangle_area = triangle_width * triangle_height / 2.0;
+
+    area_sum > triangle_area - 0.002 && area_sum < triangle_area + 0.001
+}
+
+// down, left, right
+fn calculate_midpoints(triangle_coords: &[Vertex; 3]) -> [Vertex; 3] {
+    let mut res = [[0.0; 3]; 3];
+
+    res[0][0] = (triangle_coords[0][0] + triangle_coords[1][0]) / 2.0;
+    res[0][1] = (triangle_coords[0][1] + triangle_coords[1][1]) / 2.0;
+
+    res[1][0] = (triangle_coords[0][0] + triangle_coords[2][0]) / 2.0;
+    res[1][1] = (triangle_coords[0][1] + triangle_coords[2][1]) / 2.0;
+
+    res[2][0] = (triangle_coords[1][0] + triangle_coords[2][0]) / 2.0;
+    res[2][1] = (triangle_coords[1][1] + triangle_coords[2][1]) / 2.0;
+
+    res
+}
+
+// down, left, right
+fn calculate_lengths(triangle_coords: &[Vertex; 3]) -> [f32; 3] {
+    let mut res = [0.0; 3];
+    res[0] = ((triangle_coords[0][0] - triangle_coords[1][0]).powf(2.0)
+        + (triangle_coords[0][1] - triangle_coords[1][1]).powf(2.0))
+    .sqrt();
+
+    res[1] = ((triangle_coords[0][0] - triangle_coords[2][0]).powf(2.0)
+        + (triangle_coords[0][1] - triangle_coords[2][1]).powf(2.0))
+    .sqrt();
+
+    res[2] = ((triangle_coords[1][0] - triangle_coords[2][0]).powf(2.0)
+        + (triangle_coords[1][1] - triangle_coords[2][1]).powf(2.0))
+    .sqrt();
+
+    res
 }
