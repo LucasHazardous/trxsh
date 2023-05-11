@@ -2,12 +2,11 @@
 
 use beryllium::*;
 use ogl33::*;
-use rand;
-use rand::Rng;
 use std::mem::size_of;
 use std::thread;
 use std::time::Duration;
 use trxsh::shader_program::ShaderProgram;
+use trxsh::triangle::Triangle;
 use trxsh::vao::VertexArray;
 use trxsh::vbo::Buffer;
 
@@ -50,8 +49,7 @@ fn main() {
         .expect("Couldn't make a window and context");
     win.set_swap_interval(SwapInterval::Vsync);
 
-    let mut vertices: [Vertex; 3] = [[-0.5, -0.1, 0.0], [0.1, -0.1, 0.0], [0.0, 0.0, 0.0]];
-    generate_object(&mut vertices, 0.1, 0.1);
+    let mut triangle = Triangle::new(0.1, 0.1);
 
     unsafe {
         load_gl_with(|f_name| win.get_proc_address(f_name));
@@ -79,7 +77,7 @@ fn main() {
         glEnableVertexAttribArray(0);
     }
 
-    vbo.buffer_data(bytemuck::cast_slice(&vertices));
+    vbo.buffer_data(bytemuck::cast_slice(&triangle.vertices));
     draw();
     win.swap_window();
 
@@ -101,7 +99,7 @@ fn main() {
                     let click_y = ((-mouse_event.y_pos + WINDOW_HEIGHT / 2) * 2) as f32
                         / WINDOW_HEIGHT as f32;
 
-                    println!("{}", in_triangle(&vertices, 0.1, 0.1, click_x, click_y))
+                    println!("{}", triangle.in_triangle(&click_x, &click_y))
                 }
                 _ => (),
             }
@@ -111,8 +109,8 @@ fn main() {
             handle = thread::spawn(|| {
                 thread::sleep(Duration::from_millis(1000));
             });
-            generate_object(&mut vertices, 0.1, 0.1);
-            vbo.overwrite(bytemuck::cast_slice(&vertices));
+            triangle.generate_new_coordinates();
+            vbo.overwrite(bytemuck::cast_slice(&triangle.vertices));
             draw();
             win.swap_window();
         }
@@ -124,71 +122,4 @@ fn draw() {
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, 3);
     }
-}
-
-fn generate_object(vertices: &mut [Vertex; 3], obj_width: f32, obj_height: f32) {
-    let x = rand::thread_rng().gen_range(-0.9..0.8);
-    let y = rand::thread_rng().gen_range(-0.9..0.8);
-
-    vertices[0][0] = x;
-    vertices[0][1] = y;
-
-    vertices[1][0] = x + obj_width;
-    vertices[1][1] = y;
-
-    vertices[2][0] = x + obj_width / 2.0;
-    vertices[2][1] = y + obj_height;
-}
-
-fn in_triangle(
-    triangle_coords: &[Vertex; 3],
-    triangle_width: f32,
-    triangle_height: f32,
-    click_x: f32,
-    click_y: f32,
-) -> bool {
-    let midpoints = calculate_midpoints(triangle_coords);
-    let lengths = calculate_lengths(triangle_coords);
-
-    let mut area_sum = 0.0;
-    for i in 0..2 {
-        let distance_from_midpoint =
-            ((midpoints[i][0] - click_x).powf(2.0) + (midpoints[i][1] - click_y).powf(2.0)).sqrt();
-        area_sum += distance_from_midpoint * lengths[i] / 2.0;
-    }
-    let triangle_area = triangle_width * triangle_height / 2.0;
-
-    area_sum < triangle_area + 0.001
-}
-
-// down, left, right
-fn calculate_midpoints(triangle_coords: &[Vertex; 3]) -> [Vertex; 3] {
-    let mut res = [[0.0; 3]; 3];
-
-    for i in 1..3 {
-        res[i - 1][0] = (triangle_coords[0][0] + triangle_coords[i][0]) / 2.0;
-        res[i - 1][1] = (triangle_coords[0][1] + triangle_coords[i][1]) / 2.0;
-    }
-
-    res[2][0] = (triangle_coords[1][0] + triangle_coords[2][0]) / 2.0;
-    res[2][1] = (triangle_coords[1][1] + triangle_coords[2][1]) / 2.0;
-
-    res
-}
-
-// down, left, right
-fn calculate_lengths(triangle_coords: &[Vertex; 3]) -> [f32; 3] {
-    let mut res = [0.0; 3];
-
-    for i in 1..3 {
-        res[i - 1] = ((triangle_coords[0][0] - triangle_coords[i][0]).powf(2.0)
-            + (triangle_coords[0][1] - triangle_coords[i][1]).powf(2.0))
-        .sqrt();
-    }
-
-    res[2] = ((triangle_coords[1][0] - triangle_coords[2][0]).powf(2.0)
-        + (triangle_coords[1][1] - triangle_coords[2][1]).powf(2.0))
-    .sqrt();
-
-    res
 }
