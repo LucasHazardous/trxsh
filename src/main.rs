@@ -158,18 +158,17 @@ fn in_triangle(
     }
     let triangle_area = triangle_width * triangle_height / 2.0;
 
-    area_sum > triangle_area - 0.002 && area_sum < triangle_area + 0.001
+    area_sum < triangle_area + 0.001
 }
 
 // down, left, right
 fn calculate_midpoints(triangle_coords: &[Vertex; 3]) -> [Vertex; 3] {
     let mut res = [[0.0; 3]; 3];
 
-    res[0][0] = (triangle_coords[0][0] + triangle_coords[1][0]) / 2.0;
-    res[0][1] = (triangle_coords[0][1] + triangle_coords[1][1]) / 2.0;
-
-    res[1][0] = (triangle_coords[0][0] + triangle_coords[2][0]) / 2.0;
-    res[1][1] = (triangle_coords[0][1] + triangle_coords[2][1]) / 2.0;
+    for i in 1..3 {
+        res[i - 1][0] = (triangle_coords[0][0] + triangle_coords[i][0]) / 2.0;
+        res[i - 1][1] = (triangle_coords[0][1] + triangle_coords[i][1]) / 2.0;
+    }
 
     res[2][0] = (triangle_coords[1][0] + triangle_coords[2][0]) / 2.0;
     res[2][1] = (triangle_coords[1][1] + triangle_coords[2][1]) / 2.0;
@@ -180,13 +179,12 @@ fn calculate_midpoints(triangle_coords: &[Vertex; 3]) -> [Vertex; 3] {
 // down, left, right
 fn calculate_lengths(triangle_coords: &[Vertex; 3]) -> [f32; 3] {
     let mut res = [0.0; 3];
-    res[0] = ((triangle_coords[0][0] - triangle_coords[1][0]).powf(2.0)
-        + (triangle_coords[0][1] - triangle_coords[1][1]).powf(2.0))
-    .sqrt();
 
-    res[1] = ((triangle_coords[0][0] - triangle_coords[2][0]).powf(2.0)
-        + (triangle_coords[0][1] - triangle_coords[2][1]).powf(2.0))
-    .sqrt();
+    for i in 1..3 {
+        res[i - 1] = ((triangle_coords[0][0] - triangle_coords[i][0]).powf(2.0)
+            + (triangle_coords[0][1] - triangle_coords[i][1]).powf(2.0))
+        .sqrt();
+    }
 
     res[2] = ((triangle_coords[1][0] - triangle_coords[2][0]).powf(2.0)
         + (triangle_coords[1][1] - triangle_coords[2][1]).powf(2.0))
