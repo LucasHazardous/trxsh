@@ -3,8 +3,7 @@
 use beryllium::*;
 use ogl33::*;
 use std::mem::size_of;
-use std::thread;
-use std::time::Duration;
+use std::time::{SystemTime, UNIX_EPOCH};
 use trxsh::shader_program::ShaderProgram;
 use trxsh::triangle::Triangle;
 use trxsh::vao::VertexArray;
@@ -82,37 +81,45 @@ fn main() {
     win.swap_window();
 
     let mut start = false;
-    let mut handle = thread::spawn(|| ());
+    let mut clicked = false;
+
+    let current_time = || {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time problem")
+    };
+
+    let mut time = current_time();
+
     'main_loop: loop {
         while let Some(event) = sdl.poll_events().and_then(Result::ok) {
             match event {
                 Event::Quit(_) => break 'main_loop,
-                Event::Keyboard(keyboard_event) => match keyboard_event.key.keycode.0 {
-                    115 => {
-                        start = true;
-                    }
-                    _ => (),
-                },
                 Event::MouseButton(mouse_event) => {
                     let click_x =
                         ((mouse_event.x_pos - WINDOW_WIDTH / 2) * 2) as f32 / WINDOW_WIDTH as f32;
                     let click_y = ((-mouse_event.y_pos + WINDOW_HEIGHT / 2) * 2) as f32
                         / WINDOW_HEIGHT as f32;
 
-                    println!("{}", triangle.in_triangle(&click_x, &click_y))
+                    clicked = triangle.in_triangle(&click_x, &click_y);
+                    if clicked {
+                        start = true;
+                    }
                 }
                 _ => (),
             }
         }
 
-        if start && handle.is_finished() {
-            handle = thread::spawn(|| {
-                thread::sleep(Duration::from_millis(1000));
-            });
+        if start && clicked {
+            if (current_time() - time).as_millis() > 1000 {
+                break 'main_loop;
+            }
+            clicked = false;
             triangle.generate_new_coordinates();
             vbo.overwrite(bytemuck::cast_slice(&triangle.vertices));
             draw();
             win.swap_window();
+            time = current_time();
         }
     }
 }
