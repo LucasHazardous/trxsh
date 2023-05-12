@@ -76,8 +76,14 @@ fn main() {
         glEnableVertexAttribArray(0);
     }
 
-    vbo.buffer_data(bytemuck::cast_slice(&triangle.vertices));
-    draw();
+    vbo.buffer_data(bytemuck::cast_slice(
+        concat_vertex_arrays(
+            &triangle.vertices,
+            &[[-0.025, 0.9, 0.0], [0.025, 0.9, 0.0], [0.0, 0.95, 0.0]],
+        )
+        .as_slice(),
+    ));
+    draw(2);
     win.swap_window();
 
     let mut start = false;
@@ -117,16 +123,23 @@ fn main() {
             clicked = false;
             triangle.generate_new_coordinates();
             vbo.overwrite(bytemuck::cast_slice(&triangle.vertices));
-            draw();
+            draw(1);
             win.swap_window();
             time = current_time();
         }
     }
 }
 
-fn draw() {
+fn draw(count: i32) {
     unsafe {
         glClear(GL_COLOR_BUFFER_BIT);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 0, 3 * count);
     }
+}
+
+pub fn concat_vertex_arrays(first: &[Vertex; 3], second: &[Vertex; 3]) -> Vec<Vertex> {
+    let mut v = Vec::with_capacity(first.len() + second.len());
+    v.extend_from_slice(first);
+    v.extend_from_slice(second);
+    v
 }
