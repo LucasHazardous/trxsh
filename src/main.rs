@@ -76,14 +76,8 @@ fn main() {
         glEnableVertexAttribArray(0);
     }
 
-    vbo.buffer_data(bytemuck::cast_slice(
-        concat_vertex_arrays(
-            &triangle.vertices,
-            &[[-0.025, 0.9, 0.0], [0.025, 0.9, 0.0], [0.0, 0.95, 0.0]],
-        )
-        .as_slice(),
-    ));
-    draw(2);
+    vbo.buffer_data(bytemuck::cast_slice(&triangle.vertices));
+    draw(1);
     win.swap_window();
 
     let mut start = false;
@@ -96,6 +90,7 @@ fn main() {
     };
 
     let mut time = current_time();
+    let mut score = 0;
 
     'main_loop: loop {
         while let Some(event) = sdl.poll_events().and_then(Result::ok) {
@@ -109,7 +104,15 @@ fn main() {
 
                     clicked = triangle.in_triangle(&click_x, &click_y);
                     if clicked {
-                        start = true;
+                        if !start {
+                            triangle.generate_new_coordinates();
+                            vbo.buffer_data(bytemuck::cast_slice(&triangle.vertices));
+                            score = 0;
+                            start = true;
+                            time = current_time();
+                        } else {
+                            score += 1;
+                        }
                     }
                 }
                 _ => (),
@@ -117,10 +120,22 @@ fn main() {
         }
 
         if start && clicked {
-            if (current_time() - time).as_millis() > 1000 {
-                break 'main_loop;
-            }
             clicked = false;
+            if (current_time() - time).as_millis() > 1000 {
+                start = false;
+                triangle.reset_to_default();
+                vbo.buffer_data(bytemuck::cast_slice(
+                    concat_triangle_with_score_grid(
+                        &triangle.vertices,
+                        &mut generate_score_grid(score, 0.05),
+                    )
+                    .as_slice(),
+                ));
+                draw(score + 1);
+                win.swap_window();
+                continue;
+            }
+
             triangle.generate_new_coordinates();
             vbo.overwrite(bytemuck::cast_slice(&triangle.vertices));
             draw(1);
@@ -137,9 +152,42 @@ fn draw(count: i32) {
     }
 }
 
-pub fn concat_vertex_arrays(first: &[Vertex; 3], second: &[Vertex; 3]) -> Vec<Vertex> {
-    let mut v = Vec::with_capacity(first.len() + second.len());
-    v.extend_from_slice(first);
-    v.extend_from_slice(second);
+fn concat_triangle_with_score_grid(
+    triangle: &[Vertex; 3],
+    score_grid: &mut Vec<Vertex>,
+) -> Vec<Vertex> {
+    let mut v = Vec::with_capacity(triangle.len() + score_grid.len() * 3);
+    v.extend_from_slice(triangle);
+    v.append(score_grid);
     v
+}
+
+fn generate_score_grid(score: i32, size: f32) -> Vec<Vertex> {
+    let mut res: Vec<Vertex> = Vec::new();
+
+    let mut current_x = -1.0 + size * 0.5;
+    let mut current_y = 1.0 - size - 0.5 * size;
+
+    let column_count = (WINDOW_HEIGHT as f32 * size * 0.5) as i32;
+    let row_count = score / column_count;
+
+    for _ in 0..row_count {
+        for _ in 0..column_count {
+            res.push([current_x, current_y, 0.0]);
+            res.push([current_x + size, current_y, 0.0]);
+            res.push([current_x + size / 2.0, current_y + size, 0.0]);
+            current_y -= size * 2.0;
+        }
+        current_x += size * 2.0;
+        current_y = 1.0 - size - 0.5 * size;
+    }
+
+    for _ in 0..score % column_count {
+        res.push([current_x, current_y, 0.0]);
+        res.push([current_x + size, current_y, 0.0]);
+        res.push([current_x + size / 2.0, current_y + size, 0.0]);
+        current_y -= size * 2.0;
+    }
+
+    res
 }
