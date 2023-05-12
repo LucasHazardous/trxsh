@@ -3,6 +3,8 @@ use rand::Rng;
 
 type Vertex = [f32; 3];
 
+const EXAMPLE: [Vertex; 3] = [[-0.05, 0.0, 0.0], [0.05, 0.0, 0.0], [0.0, 0.1, 0.0]];
+
 pub struct Triangle {
     pub vertices: [Vertex; 3],
     width: f32,
@@ -13,14 +15,18 @@ pub struct Triangle {
 
 impl Triangle {
     pub fn new(width: f32, height: f32) -> Triangle {
-        let example = [[-0.05, 0.0, 0.0], [0.05, 0.0, 0.0], [0.0, 0.1, 0.0]];
         Triangle {
-            vertices: example,
+            vertices: EXAMPLE,
             width,
             height,
-            midpoints: Triangle::calculate_midpoints(&example),
-            lengths: Triangle::calculate_lengths(&example),
+            midpoints: Triangle::calculate_midpoints(&EXAMPLE),
+            lengths: Triangle::calculate_lengths(&EXAMPLE),
         }
+    }
+
+    pub fn reset_to_default(&mut self) {
+        self.vertices = EXAMPLE;
+        self.midpoints = Triangle::calculate_midpoints(&self.vertices);
     }
 
     pub fn generate_new_coordinates(&mut self) {
