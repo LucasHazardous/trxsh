@@ -1,5 +1,3 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
 use beryllium::*;
 use ogl33::*;
 use std::mem::size_of;
@@ -78,7 +76,7 @@ fn main() {
     }
 
     vbo.buffer_data(bytemuck::cast_slice(&triangle.vertices));
-    draw(1);
+    draw_triangles(1);
     win.swap_window();
 
     let mut start = false;
@@ -134,7 +132,7 @@ fn main() {
                     )
                     .as_slice(),
                 ));
-                draw(score + 1);
+                draw_triangles(score + 1);
                 win.swap_window();
                 continue;
             }
@@ -142,14 +140,14 @@ fn main() {
             time_limit -= (DEFAULT_MILLIS_LIMIT as f32 * 0.005) as u128;
             triangle.generate_new_coordinates();
             vbo.overwrite(bytemuck::cast_slice(&triangle.vertices));
-            draw(1);
+            draw_triangles(1);
             win.swap_window();
             time = current_time();
         }
     }
 }
 
-fn draw(count: i32) {
+fn draw_triangles(count: i32) {
     unsafe {
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, 3 * count);
@@ -166,31 +164,39 @@ fn concat_triangle_with_score_grid(
     v
 }
 
-fn generate_score_grid(score: i32, size: f32) -> Vec<Vertex> {
+fn generate_score_grid(score: i32, element_size: f32) -> Vec<Vertex> {
     let mut res: Vec<Vertex> = Vec::new();
 
-    let mut current_x = -1.0 + size * 0.5;
-    let mut current_y = 1.0 - size - 0.5 * size;
+    let mut current_x = -1.0 + element_size * 0.5;
+    let mut current_y = 1.0 - 1.5 * element_size;
 
-    let column_count = (WINDOW_HEIGHT as f32 * size * 0.5) as i32;
+    let column_count = (WINDOW_HEIGHT as f32 * element_size * 0.5) as i32;
     let row_count = score / column_count;
 
     for _ in 0..row_count {
         for _ in 0..column_count {
             res.push([current_x, current_y, 0.0]);
-            res.push([current_x + size, current_y, 0.0]);
-            res.push([current_x + size / 2.0, current_y + size, 0.0]);
-            current_y -= size * 2.0;
+            res.push([current_x + element_size, current_y, 0.0]);
+            res.push([
+                current_x + element_size / 2.0,
+                current_y + element_size,
+                0.0,
+            ]);
+            current_y -= element_size * 2.0;
         }
-        current_x += size * 2.0;
-        current_y = 1.0 - size - 0.5 * size;
+        current_x += element_size * 2.0;
+        current_y = 1.0 - 1.5 * element_size;
     }
 
     for _ in 0..score % column_count {
         res.push([current_x, current_y, 0.0]);
-        res.push([current_x + size, current_y, 0.0]);
-        res.push([current_x + size / 2.0, current_y + size, 0.0]);
-        current_y -= size * 2.0;
+        res.push([current_x + element_size, current_y, 0.0]);
+        res.push([
+            current_x + element_size / 2.0,
+            current_y + element_size,
+            0.0,
+        ]);
+        current_y -= element_size * 2.0;
     }
 
     res
