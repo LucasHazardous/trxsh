@@ -26,6 +26,7 @@ const FRAG_SHADER: &str = r#"#version 330 core
 
 const WINDOW_HEIGHT: i32 = 800;
 const WINDOW_WIDTH: i32 = 800;
+const DEFAULT_MILLIS_LIMIT: u128 = 1000;
 
 type Vertex = [f32; 3];
 
@@ -90,6 +91,7 @@ fn main() {
     };
 
     let mut time = current_time();
+    let mut time_limit = DEFAULT_MILLIS_LIMIT;
     let mut score = 0;
 
     'main_loop: loop {
@@ -121,8 +123,9 @@ fn main() {
 
         if start && clicked {
             clicked = false;
-            if (current_time() - time).as_millis() > 1000 {
+            if (current_time() - time).as_millis() > time_limit {
                 start = false;
+                time_limit = DEFAULT_MILLIS_LIMIT;
                 triangle.reset_to_default();
                 vbo.buffer_data(bytemuck::cast_slice(
                     concat_triangle_with_score_grid(
@@ -136,6 +139,7 @@ fn main() {
                 continue;
             }
 
+            time_limit -= (DEFAULT_MILLIS_LIMIT as f32 * 0.005) as u128;
             triangle.generate_new_coordinates();
             vbo.overwrite(bytemuck::cast_slice(&triangle.vertices));
             draw(1);
