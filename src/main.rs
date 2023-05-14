@@ -2,8 +2,10 @@ use beryllium::*;
 use ogl33::*;
 use std::mem::size_of;
 use std::time::{SystemTime, UNIX_EPOCH};
+use trxsh::score_grid::concat_triangle_with_score_grid;
 use trxsh::shader_program::ShaderProgram;
 use trxsh::triangle::Triangle;
+use trxsh::triangle::Vertex;
 use trxsh::vao::VertexArray;
 use trxsh::vbo::Buffer;
 
@@ -25,8 +27,6 @@ const FRAG_SHADER: &str = r#"#version 330 core
 const WINDOW_HEIGHT: i32 = 800;
 const WINDOW_WIDTH: i32 = 800;
 const DEFAULT_MILLIS_LIMIT: u128 = 1000;
-
-type Vertex = [f32; 3];
 
 fn main() {
     let sdl = SDL::init(InitFlags::Everything).expect("Couldn't start SDL");
@@ -128,7 +128,9 @@ fn main() {
                 vbo.buffer_data(bytemuck::cast_slice(
                     concat_triangle_with_score_grid(
                         &triangle.vertices,
-                        &mut generate_score_grid(score, 0.05),
+                        score,
+                        0.05,
+                        WINDOW_HEIGHT as f32,
                     )
                     .as_slice(),
                 ));
@@ -152,52 +154,4 @@ fn draw_triangles(count: i32) {
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, 3 * count);
     }
-}
-
-fn concat_triangle_with_score_grid(
-    triangle: &[Vertex; 3],
-    score_grid: &mut Vec<Vertex>,
-) -> Vec<Vertex> {
-    let mut v = Vec::with_capacity(triangle.len() + score_grid.len() * 3);
-    v.extend_from_slice(triangle);
-    v.append(score_grid);
-    v
-}
-
-fn generate_score_grid(score: i32, element_size: f32) -> Vec<Vertex> {
-    let mut res: Vec<Vertex> = Vec::new();
-
-    let mut current_x = -1.0 + element_size * 0.5;
-    let mut current_y = 1.0 - 1.5 * element_size;
-
-    let column_count = (WINDOW_HEIGHT as f32 * element_size * 0.5) as i32;
-    let row_count = score / column_count;
-
-    for _ in 0..row_count {
-        for _ in 0..column_count {
-            res.push([current_x, current_y, 0.0]);
-            res.push([current_x + element_size, current_y, 0.0]);
-            res.push([
-                current_x + element_size / 2.0,
-                current_y + element_size,
-                0.0,
-            ]);
-            current_y -= element_size * 2.0;
-        }
-        current_x += element_size * 2.0;
-        current_y = 1.0 - 1.5 * element_size;
-    }
-
-    for _ in 0..score % column_count {
-        res.push([current_x, current_y, 0.0]);
-        res.push([current_x + element_size, current_y, 0.0]);
-        res.push([
-            current_x + element_size / 2.0,
-            current_y + element_size,
-            0.0,
-        ]);
-        current_y -= element_size * 2.0;
-    }
-
-    res
 }

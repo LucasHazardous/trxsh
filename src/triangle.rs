@@ -1,7 +1,7 @@
 use rand;
 use rand::Rng;
 
-type Vertex = [f32; 3];
+pub type Vertex = [f32; 3];
 
 const EXAMPLE: [Vertex; 3] = [[-0.05, 0.0, 0.0], [0.05, 0.0, 0.0], [0.0, 0.1, 0.0]];
 
